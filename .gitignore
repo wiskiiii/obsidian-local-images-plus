@@ -17,3 +17,6 @@ data.json
 # build
 obsidian_local_images_plus_latest.7z
 test.sh
+
+# sessions
+sessions/

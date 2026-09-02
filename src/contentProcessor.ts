@@ -164,13 +164,12 @@ export function imageTagProcessor(app: Plugin,
 
           if (!app.app.vault.getConfig("useMarkdownLinks")) {
 
-            // image caption
-            (!settings.useCaptions || !caption.length) ? caption = "" : caption = "\|" + caption;
+            // image size has higher priority, the caption is used only when there is no size.
+            // Markdown titles arrive quoted ( ![alt](url "title") ), wiki links take them bare.
+            const attribute = trimAny(imgsize.length ? imgsize : caption, ["\"", "'"]);
+            const suffix = (!settings.useCaptions || !attribute.length) ? "" : "\|" + attribute;
 
-            // image size has higher priority
-            (!settings.useCaptions || !imgsize.length) ? caption = "" : caption = "\|" + imgsize;
-
-            return [match, `![[${pathWiki}${caption}]]`, `${shortName}`];
+            return [match, `![[${pathWiki}${suffix}]]`, `${shortName}`];
           }
 
           else {

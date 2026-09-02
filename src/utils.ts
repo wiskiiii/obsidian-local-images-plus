@@ -90,6 +90,62 @@ export function md5Sig(contentData: ArrayBuffer = undefined) {
 }
 
 
+/*
+Web clippers (Obsidian Web Clipper among them) usually wrap a picture into a link
+pointing to the very same picture:  [![alt](src)](href)
+MD_SEARCH_PATTERN only matches the inner "![alt](src)" part, so replacing it in place
+leaves "[![[attachment.png]]](href)" behind. Obsidian cannot parse that: the first "]"
+of the wiki embed closes the label of the outer link and the whole line degrades to
+plain text. There is no valid way to put a wiki embed inside a markdown link, hence the
+wrapping link is dropped together with the tag it wraps. Markdown style replacements are
+left alone, "[![alt](path)](href)" is perfectly valid.
+*/
+function wrappingLinkRange(str: string, start: number, end: number) {
+
+  if (str[start - 1] !== "[" || str[start - 2] === "!" ||
+    str[end] !== "]" || str[end + 1] !== "(") {
+    return null;
+  }
+
+  let depth = 1;
+
+  for (let i = end + 2; i < str.length; i++) {
+    if (str[i] === "\n") { break; }
+    if (str[i] === "(") { depth++; }
+    else if (str[i] === ")") {
+      depth--;
+      if (depth === 0) { return [start - 1, i + 1]; }
+    }
+  }
+
+  return null;
+}
+
+
+export function replaceImageTag(str: string, oldTag: string, newTag: string) {
+
+  if (!oldTag) { return str; }
+
+  // markdown style links keep the wrapper, "[![alt](path)](href)" renders just fine
+  const dropWrapper = newTag.startsWith("![[");
+
+  let result = "";
+  let pos = 0;
+  let found = str.indexOf(oldTag);
+
+  while (found !== -1) {
+    const end = found + oldTag.length;
+    const wrapper = dropWrapper ? wrappingLinkRange(str, found, end) : null;
+
+    result += str.slice(pos, wrapper !== null ? wrapper[0] : found) + newTag;
+    pos = wrapper !== null ? wrapper[1] : end;
+    found = str.indexOf(oldTag, pos);
+  }
+
+  return result + str.slice(pos);
+}
+
+
 export async function replaceAsync(str: any, regex: Array<RegExp>, asyncFn: any) {
 
   logError("replaceAsync: \r\nstr: " + str + "\r\nregex: ")
@@ -114,7 +170,8 @@ export async function replaceAsync(str: any, regex: Array<RegExp>, asyncFn: any)
     
       anchor = trimAny(match.groups.anchor, [")", "(", "]", "[", " "]); 
       
-       
+      // the size belongs to this tag only, otherwise it leaks into the tags that follow
+      AttSize = "";
       const AttSizeMatch = anchor.matchAll(ATT_SIZE_ACHOR);
        
       for (const match of AttSizeMatch) {
@@ -162,7 +219,7 @@ export async function replaceAsync(str: any, regex: Array<RegExp>, asyncFn: any)
     if (element !== null) {
 
       logError("el: " + element[0] + "  el2: " + element[1] + element[2]);
-      str = str.replaceAll(element[0], element[1] + element[2]);
+      str = replaceImageTag(str, element[0], element[1] + element[2]);
       filesArr.push(element[1]);
     }
     else {

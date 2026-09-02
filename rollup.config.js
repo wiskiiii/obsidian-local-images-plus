@@ -29,8 +29,8 @@ export default {
   plugins: [
     execute([
       ` mkdir -p ${currentDir}/obsidian_local_images_plus_latest`,
-      ` cp -u ${currentDir}/manifest.json ${currentDir}/obsidian_local_images_plus_latest/manifest.json`,
-      ` cp -u ${currentDir}/styles.css ${currentDir}/obsidian_local_images_plus_latest/styles.css`,
+      ` cp -f ${currentDir}/manifest.json ${currentDir}/obsidian_local_images_plus_latest/manifest.json`,
+      ` cp -f ${currentDir}/styles.css ${currentDir}/obsidian_local_images_plus_latest/styles.css`,
     ]),
     typescript(),
     nodeResolve({ browser: true }),
